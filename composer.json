@@ -1,0 +1,12 @@
+{
+    "name": "user/phpr",
+    "description": "A PHP application to keep track of expenses.",
+    "type": "project",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Framework\\": "src/Framework",
+            "App\\": "src/App"
+        }
+    }
+}
