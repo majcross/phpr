@@ -2,11 +2,20 @@
     "name": "user/phpr",
     "description": "A PHP application to keep track of expenses.",
     "type": "project",
-    "require": {},
+    "require": {
+        "vlucas/phpdotenv": "^5.6"
+    },
     "autoload": {
         "psr-4": {
             "Framework\\": "src/Framework",
             "App\\": "src/App"
-        }
+        },
+        "files": [
+            "src/App/Config/Routes.php",
+            "src/App/Config/Middleware.php"
+        ]
+    },
+    "scripts": {
+        "phpr": "php clis.php"
     }
 }
