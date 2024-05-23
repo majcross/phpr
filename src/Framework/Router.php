@@ -14,10 +14,15 @@ class Router
     public function add(string $method, string $path, array $controller)
     {
         $path = $this->normalizePath($path);
+
+        $regexPath = preg_replace('#{[^/]+}#', '([^/]+)', $path);
+
         $this->routes[] = [
             'path' => $path,
             'method' => strtoupper($method),
-            'controller' => $controller
+            'controller' => $controller,
+            'middlewares' => [],
+            'regexPath' => $regexPath
         ];
     }
 
@@ -34,15 +39,25 @@ class Router
     public function dispatch(string $path, string $method, Container $container = null)
     {
         $path = $this->normalizePath($path);
-        $method = strtoupper($method);
+        $method = strtoupper($_POST['_METHOD'] ?? $method);
 
         foreach ($this->routes as $route) {
             if (
-                !preg_match("#^{$route['path']}$#", $path) ||
+                !preg_match("#^{$route['regexPath']}$#", $path, $paramsValue) ||
                 $route['method'] !== $method
             ) {
                 continue;
             }
+
+            array_shift($paramsValue);
+
+            preg_match_all('#{([^/]+)}#', $route['path'], $paramKeys);
+
+            $paramKeys = $paramKeys[1];
+
+            $params = array_combine($paramKeys, $paramsValue);
+
+            // dd($params);
             [$class, $function] = $route['controller'];
 
             $controllerInstance = $container ?
@@ -64,11 +79,16 @@ class Router
             // $controllerInstance->{$function}();
 
             // Invokes with a middleware before instanciating
-            $action = fn () => $controllerInstance->{$function}();
+            $action = fn () => $controllerInstance->{$function}($params);
+
+            // add middleware put the global middleware first before the route middleware
+
+            $allMiddleware = [...$route['middlewares'], ...$this->middlewares];
 
             // Looping through
 
-            foreach ($this->middlewares as $middleware) {
+            // foreach ($this->middlewares as $middleware) {
+            foreach ($allMiddleware as $middleware) {
                 $middlewareInstance = $container ?
                     $container->resolve($middleware) :
                     new $middleware;
@@ -85,5 +105,11 @@ class Router
     public function addMiddleware(string $middleware)
     {
         $this->middlewares[] = $middleware;
+    }
+
+    public function addRouteMiddleware(string $middleware)
+    {
+        $lastRouteKey = array_key_last($this->routes);
+        $this->routes[$lastRouteKey]['middlewares'][] = $middleware;
     }
 }
